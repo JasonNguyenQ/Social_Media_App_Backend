@@ -1,4 +1,5 @@
 const express = require('express')
+const asyncHandler = require('express-async-handler')
 const jwt = require("jsonwebtoken")
 const http = require('http')
 const { Server } = require('socket.io')
@@ -70,7 +71,7 @@ app.get('/', (req,res)=>{
     res.status(200).send("please use the API routes /api/")
 })
 
-app.post('/auth/login', async (req,res)=>{
+app.post('/auth/login', asyncHandler(async (req,res)=>{
     const { username, password } = req.body
     
     connection.execute(
@@ -92,7 +93,7 @@ app.post('/auth/login', async (req,res)=>{
     .catch((err)=>{
         res.status(401).send(err)
     })
-})
+}))
 
 app.get('/auth/authenticate', (req,res)=>{
     const header = req.headers['authorization']
@@ -103,6 +104,11 @@ app.get('/auth/authenticate', (req,res)=>{
 
         res.status(200).send({ id: user.sub, username: user.preferred_username })
     })
+})
+
+app.use((err,req,res,next)=>{
+    console.error(err.stack)
+    res.status(500).send(err)
 })
 
 server.listen(process.env.SERVER_PORT, ()=>{

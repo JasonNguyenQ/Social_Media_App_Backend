@@ -1,52 +1,42 @@
 const express = require('express')
+const asyncHandler = require('express-async-handler')
 const Authenticate = require("./Auth")
 const bcrypt = require('bcryptjs')
 const connection = require("../database/database")
 
 const app = express.Router()
 
-app.get('/api/users/', async (req,res)=>{
+app.get('/api/users/', asyncHandler(async (req,res)=>{
     const { id } = req.query
-    connection.execute(
+    const [rows] = await connection.execute(
         'SELECT username, firstName, lastName, profilePicture, backgroundImage, description FROM `users` WHERE id = ?',
         [id]
     )
-    .then(([rows])=>{
-        res.status(200).send(rows[0])
-    })
-    .catch((err)=>{
-        res.status(500).send("ERROR FETCHING USERS")
-    })
-})
+    res.status(200).send(rows[0])
+}));
 
-app.get('/api/users/search', async (req,res)=>{
+app.get('/api/users/search', asyncHandler(async (req,res)=>{
     const { username } = req.query
-    connection.execute(
+    const [rows] = await connection.execute(
         "SELECT username, id FROM `users` WHERE username LIKE CONCAT('%',?,'%') LIMIT 10",
         [username]
     )
-    .then(([rows])=>{
-        res.status(200).send(rows)
-    })
-    .catch((err)=>{
-        res.status(500).send("ERROR SEARCHING")
-    })
-})
+    res.status(200).send(rows)
+}))
 
-app.post('/api/users/register', async (req,res)=>{
+app.post('/api/users/register', asyncHandler(async (req,res)=>{
     const { username, password, firstName, lastName } = req.body
     const hash = await bcrypt.hash(password,13)
     
-    connection.execute(
+    await connection.execute(
         'INSERT INTO `users` (username, password, firstName, lastName) VALUES (?,?,?,?)',
         [username, hash, firstName, lastName]
     )
-    .then(([rows, fields])=>{
-        res.status(200).send("SUCCESSFULLY CREATED USER")
-    })
-    .catch((err)=>{
-        res.status(500).send("ERROR REGISTERING USER")
-    })
+    res.status(200).send("SUCCESSFULLY CREATED USER")
+}));
+
+app.use((err,req,res,next)=>{
+    res.status(500).send(err)
 })
 
 module.exports = app
