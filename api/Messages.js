@@ -44,28 +44,28 @@ const isSubscribed = async (threadId, uid)=>{
 const PrivateDM = asyncHandler(async (req,res,next)=>{
     const threadId = req.threadId
     const [user1] = await connection.execute(
-        'SELECT username FROM `users` WHERE id = ?',
+        'SELECT username, profilePicture FROM `users` WHERE id = ?',
         [req.id]
     )
     const [user2] = await connection.execute(
-        'SELECT username FROM `users` WHERE id = ?',
+        'SELECT username, profilePicture FROM `users` WHERE id = ?',
         [req.friend]
     )
 
     await connection.execute(
-        'INSERT INTO `subscriptions` (threadId, threadName, uid) VALUES (?,?,?)',
-        [threadId, user2[0].username, req.id]
+        'INSERT INTO `subscriptions` (threadId, threadName, threadIcon, uid) VALUES (?,?,?,?)',
+        [threadId, user2[0].username, user2[0].profilePicture, req.id]
     )
     await connection.execute(
-        'INSERT INTO `subscriptions` (threadId, threadName, uid) VALUES (?,?,?)',
-        [threadId, user1[0].username, req.friend]
+        'INSERT INTO `subscriptions` (threadId, threadName, threadIcon, uid) VALUES (?,?,?,?)',
+        [threadId, user1[0].username, user1[0].profilePicture, req.friend]
     )
     next()
 });
 
 app.get('/api/messages/threads', Authenticate, asyncHandler(async (req,res)=>{
     const [rows] = await connection.execute(
-        'SELECT threadId, threadName FROM `subscriptions` WHERE uid = ?',
+        'SELECT threadId, threadName, threadIcon FROM `subscriptions` WHERE uid = ?',
         [req.id]
     )
     res.status(200).json(rows)

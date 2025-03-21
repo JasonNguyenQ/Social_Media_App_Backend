@@ -70,9 +70,8 @@ app.put('/api/friends/:id', Authenticate, asyncHandler(async (req,res,next)=>{
         )
         req.friend = id
     }
-
     next()
-}, CreateThread, PrivateDM, (req,res)=>{res.status(200).send("ACCEPTED FRIEND REQUEST")}))
+}), CreateThread, PrivateDM, (req,res)=>{res.status(200).send("ACCEPTED FRIEND REQUEST")})
 
 app.delete('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
     const { id } = req.params

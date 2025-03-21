@@ -64,13 +64,12 @@ app.patch('/api/users', Authenticate,
     }
     query = query.slice(0,-2) + " WHERE id = ?"
     params.push(id)
-    console.log(profilePicture)
+
     await connection.execute(query, params)
     res.status(200).send("SUCCESSFULLY UPDATED USER")
 }));
 
 app.use((err,req,res,next)=>{
-    console.log(err)
     res.status(500).send(err)
 })
 
