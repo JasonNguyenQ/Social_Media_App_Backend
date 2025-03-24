@@ -5,10 +5,34 @@ const { validateBufferMIMEType } = require("validate-image-type")
 const Authenticate = require("./Auth")
 const bcrypt = require('bcryptjs')
 const connection = require("../database/database")
+const { z } = require('zod')
 
 const app = express.Router()
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+const userRegistrationSchema = z.object({
+    username: z.
+        string()
+        .refine(data=>!data.includes(" "), { message: "Username must NOT include spaces"}),
+
+    password: z
+        .string()
+        .min(8, { message: "Password MUST have 8 characters or more" })
+        .regex(/[A-Z]/, { message: "Password MUST include at least one capital letter"})
+        .regex(/[0-9]/, { message: "Password MUST include at least one digit"})
+        .regex(/[^a-zA-Z0-9]/, { message: "Password MUST include at least one special character"}),
+
+    firstName: z
+        .string()
+        .regex(/^[A-Z][a-z]*$/, { message: "First name MUST start with an uppercase and trail with lowercase English letters" }),
+
+    lastName: z
+        .string()
+        .regex(/^[A-Z][a-z]*$/, { message: "Last name MUST start with an uppercase and trail with lowercase English letters" }),
+
+    
+})
 
 app.get('/api/users/', asyncHandler(async (req,res)=>{
     const { id } = req.query
@@ -32,11 +56,17 @@ app.post('/api/users/register', asyncHandler(async (req,res)=>{
     const { username, password, firstName, lastName } = req.body
     const hash = await bcrypt.hash(password,13)
     
-    await connection.execute(
-        'INSERT INTO `users` (username, password, firstName, lastName) VALUES (?,?,?,?)',
-        [username, hash, firstName, lastName]
-    )
-    res.status(200).send("SUCCESSFULLY CREATED USER")
+    const result = userRegistrationSchema.safeParse(req.body);
+    if(result.success){
+        await connection.execute(
+            'INSERT INTO `users` (username, password, firstName, lastName) VALUES (?,?,?,?)',
+            [username, hash, firstName, lastName]
+        )
+        res.status(200).send("SUCCESSFULLY CREATED USER")
+    }
+    else{
+        res.status(400).send("INVALID INPUT FIELDS")
+    }
 }));
 
 app.patch('/api/users', Authenticate, 
