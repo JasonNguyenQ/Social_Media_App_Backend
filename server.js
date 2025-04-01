@@ -1,5 +1,6 @@
 const express = require('express')
 const asyncHandler = require('express-async-handler')
+const { rateLimit } = require('express-rate-limit')
 const jwt = require("jsonwebtoken")
 const http = require('http')
 const { Server } = require('socket.io')
@@ -12,6 +13,22 @@ const app = express()
 
 app.use(express.json())
 app.use(cookieParser())
+
+const limiter = rateLimit({
+    windowMs: 1000*60,
+    max: 100,
+    message: "Number of requests exceeded the max rate limit, please try again later",
+    headers: true
+})
+app.use(limiter)
+
+const loginAccountLimiter = rateLimit({
+    windowMs: 1000*60,
+    limit: 10,
+    message: "Too many login attempts, please try again later",
+    headers: true,
+    skipSuccessfulRequests: true
+})
 
 const corsOptions = {
     origin: [`http://localhost:3000`,`http://localhost:5173`],
@@ -75,7 +92,7 @@ app.get('/', (req,res)=>{
     res.status(200).send("please use the API routes /api/")
 })
 
-app.post('/auth/login', asyncHandler(async (req,res)=>{
+app.post('/auth/login', loginAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password } = req.body
     
     const [result] = await connection.execute(

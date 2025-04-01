@@ -1,4 +1,5 @@
 const express = require('express')
+const { rateLimit } = require('express-rate-limit')
 const multer = require("multer")
 const asyncHandler = require('express-async-handler')
 const { validateBufferMIMEType } = require("validate-image-type")
@@ -10,6 +11,13 @@ const { z } = require('zod')
 const app = express.Router()
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+const createAccountLimiter = rateLimit({
+    windowMs: 1000*60*60,
+    max: 5,
+    message: "Too many account creations, please try again later",
+    headers: true
+})
 
 const userRegistrationSchema = z.object({
     username: z.
@@ -52,7 +60,7 @@ app.get('/api/users/search', asyncHandler(async (req,res)=>{
     res.status(200).send(rows)
 }))
 
-app.post('/api/users/register', asyncHandler(async (req,res)=>{
+app.post('/api/users/register', createAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password, firstName, lastName } = req.body
     const hash = await bcrypt.hash(password,13)
     
