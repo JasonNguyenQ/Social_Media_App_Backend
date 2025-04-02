@@ -3,9 +3,10 @@ const { rateLimit } = require('express-rate-limit')
 const multer = require("multer")
 const asyncHandler = require('express-async-handler')
 const { validateBufferMIMEType } = require("validate-image-type")
+const redis = require('redis')
 const Authenticate = require("./Auth")
 const bcrypt = require('bcryptjs')
-const connection = require("../database/database")
+const { DBConnection, redisConnection } = require("../database/database")
 const { z } = require('zod')
 
 const app = express.Router()
@@ -13,7 +14,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
     limits: { fileSize: 10*1024*1024 }
- });
+});
 
 const createAccountLimiter = rateLimit({
     windowMs: 1000*60*60,
@@ -47,16 +48,26 @@ const userRegistrationSchema = z.object({
 
 app.get('/api/users/', asyncHandler(async (req,res)=>{
     const { id } = req.query
-    const [rows] = await connection.execute(
+
+    const user = await redisConnection.GET(`users?id=${id}`)
+    if (user != null){
+        return res.status(200).send(user)
+    }
+    
+    const [rows] = await DBConnection.execute(
         'SELECT username, firstName, lastName, profilePicture, backgroundImage, description FROM `users` WHERE id = ?',
         [id]
     )
+
+    await redisConnection.setEx(`users?id=${id}`, process.env.CACHE_INVALIDATE, JSON.stringify(rows[0]))
     res.status(200).send(rows[0])
+
+    
 }));
 
 app.get('/api/users/search', asyncHandler(async (req,res)=>{
     const { username } = req.query
-    const [rows] = await connection.execute(
+    const [rows] = await DBConnection.execute(
         "SELECT username, id FROM `users` WHERE username LIKE CONCAT('%',?,'%') LIMIT 10",
         [username]
     )
@@ -69,7 +80,7 @@ app.post('/api/users/register', createAccountLimiter, asyncHandler(async (req,re
     
     const result = userRegistrationSchema.safeParse(req.body);
     if(result.success){
-        await connection.execute(
+        await DBConnection.execute(
             'INSERT INTO `users` (username, password, firstName, lastName) VALUES (?,?,?,?)',
             [username, hash, firstName, lastName]
         )
@@ -106,7 +117,9 @@ app.patch('/api/users', Authenticate,
     query = query.slice(0,-2) + " WHERE id = ?"
     params.push(id)
 
-    await connection.execute(query, params)
+    await DBConnection.execute(query, params)
+
+    await redisConnection.DEL(`users?id=${id}`)
     res.status(200).send("SUCCESSFULLY UPDATED USER")
 }));
 

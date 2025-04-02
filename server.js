@@ -7,7 +7,7 @@ const { Server } = require('socket.io')
 const cookieParser = require('cookie-parser')
 const cors = require('cors');
 const bcrypt = require('bcryptjs')
-const connection = require('./database/database')
+const {DBConnection} = require('./database/database')
 
 const app = express()
 
@@ -95,7 +95,7 @@ app.get('/', (req,res)=>{
 app.post('/auth/login', loginAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password } = req.body
     
-    const [result] = await connection.execute(
+    const [result] = await DBConnection.execute(
         'SELECT id, password FROM `users` WHERE username = ?',
         [username]
     )
