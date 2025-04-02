@@ -10,7 +10,10 @@ const { z } = require('zod')
 
 const app = express.Router()
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10*1024*1024 }
+ });
 
 const createAccountLimiter = rateLimit({
     windowMs: 1000*60*60,
