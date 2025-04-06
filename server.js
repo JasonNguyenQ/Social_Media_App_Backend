@@ -1,6 +1,7 @@
 const express = require('express')
 const asyncHandler = require('express-async-handler')
 const { rateLimit } = require('express-rate-limit')
+const compression = require('compression')
 const jwt = require("jsonwebtoken")
 const http = require('http')
 const { Server } = require('socket.io')
@@ -13,6 +14,7 @@ const app = express()
 
 app.use(express.json())
 app.use(cookieParser())
+app.use(compression())
 
 const limiter = rateLimit({
     windowMs: 1000*60,

@@ -4,6 +4,7 @@ const multer = require("multer")
 const asyncHandler = require('express-async-handler')
 const { validateBufferMIMEType } = require("validate-image-type")
 const Authenticate = require("./Auth")
+const sharp = require("sharp")
 const bcrypt = require('bcryptjs')
 const { DBConnection, redisConnection } = require("../database/database")
 const { z } = require('zod')
@@ -12,7 +13,7 @@ const app = express.Router()
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10*1024*1024 }
+    limits: { fileSize: 1024*1024 }
 });
 
 const createAccountLimiter = rateLimit({
@@ -107,11 +108,21 @@ app.patch('/api/users', Authenticate,
     }
     if(profilePicture && await validateBufferMIMEType(profilePicture[0].buffer, {allowMimeTypes: allowedTypes})){
         query += "profilePicture = ?, "
-        params.push(profilePicture[0].buffer.toString('base64'))
+
+        const compressedImage = await sharp(profilePicture[0].buffer)
+            .resize(150,150)
+            .webp({quality: 80})
+            .toBuffer()
+        params.push(compressedImage.toString('base64'))
     }
     if(backgroundImage && await validateBufferMIMEType(backgroundImage[0].buffer, {allowMimeTypes: allowedTypes})){
         query += "backgroundImage = ?, "
-        params.push(backgroundImage[0].buffer.toString('base64'))
+
+        const compressedImage = await sharp(backgroundImage[0].buffer)
+            .resize(900,150)
+            .webp({quality: 80})
+            .toBuffer()
+        params.push(compressedImage.toString('base64'))
     }
     query = query.slice(0,-2) + " WHERE id = ?"
     params.push(id)
