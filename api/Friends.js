@@ -7,8 +7,10 @@ const {DBConnection} = require("../database/database")
 const app = express.Router()
 
 app.get('/api/friends', Authenticate, asyncHandler(async (req,res)=>{
-    const [friends] = await DBConnection.execute(
-        'SELECT * FROM `friends` WHERE sender = ? OR receiver = ?',
+    const [friends] = await DBConnection.execute(`
+        SELECT * 
+        FROM friends 
+        WHERE sender = ? OR receiver = ?`,
         [req.id, req.id]
     )
 
@@ -19,8 +21,10 @@ app.get('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
     const { id } = req.params
     if (req.id === parseInt(id)) return res.status(200).json({state: "You"})
 
-    const [rows] = await DBConnection.execute(
-        'SELECT sender, receiver, state FROM `friends` WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)',
+    const [rows] = await DBConnection.execute(`
+        SELECT sender, receiver, state 
+        FROM friends 
+        WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)`,
         [req.id, id, id, req.id]
     )
 
@@ -38,17 +42,11 @@ app.get('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
 
 app.post('/api/friends', Authenticate, asyncHandler(async (req, res)=>{
     const { id } = req.body
-    if (req.id === id) return res.status(500).send("ERROR SENDING FRIEND REQUEST")
+    if (req.id == id) return res.status(500).send("ERROR SENDING FRIEND REQUEST")
 
-    const [outgoing] = await DBConnection.execute(
-        'SELECT * FROM `friends` WHERE sender = ? AND receiver = ?',
-        [req.id, id]
-    )
-
-    if (outgoing.length > 0) return res.status(500).send("ERROR SENDING FRIEND REQUEST")
-
-    await DBConnection.execute(
-        'INSERT INTO `friends` (sender, receiver) VALUES (?,?)',
+    await DBConnection.execute(`
+        INSERT INTO friends (sender, receiver) 
+        VALUES (?,?)`,
         [req.id, id]
     )
 
@@ -58,26 +56,23 @@ app.post('/api/friends', Authenticate, asyncHandler(async (req, res)=>{
 app.put('/api/friends/:id', Authenticate, asyncHandler(async (req,res,next)=>{
     const { id } = req.params
 
-    const [incoming] = await DBConnection.execute(
-        'SELECT * FROM `friends` WHERE sender = ? AND receiver = ?',
+    await DBConnection.execute(`
+        UPDATE friends
+        SET state = "Friends" 
+        WHERE sender = ? AND receiver = ? AND state = "Pending"`,
         [id, req.id]
     )
 
-    if( incoming.length > 0 ){
-        await DBConnection.execute(
-            'UPDATE `friends` SET state = "Friends" WHERE sender = ? AND receiver = ? AND state = "Pending"',
-            [id, req.id]
-        )
-        req.friend = id
-    }
+    req.friend = id
     next()
 }), CreateThread, PrivateDM, (req,res)=>{res.status(200).send("ACCEPTED FRIEND REQUEST")})
 
 app.delete('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
     const { id } = req.params
 
-    await DBConnection.execute(
-        'DELETE FROM `friends` WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)',
+    await DBConnection.execute(`
+        DELETE FROM friends 
+        WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)`,
         [id, req.id, req.id, id]
     )
 

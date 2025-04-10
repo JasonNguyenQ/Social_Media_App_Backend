@@ -10,8 +10,9 @@ const CreateThread = asyncHandler(async (req,res,next)=>{
     const threadId = crypto.randomUUID()
     const date = new Date()
 
-    await DBConnection.execute(
-        'INSERT INTO `threads` (threadId, createdAt, owner) VALUES (?,?,?)',
+    await DBConnection.execute(`
+        INSERT INTO threads (threadId, createdAt, owner) 
+        VALUES (?,?,?)`,
         [threadId, date, req.id]
     )
     req.threadId = threadId
@@ -21,8 +22,9 @@ const CreateThread = asyncHandler(async (req,res,next)=>{
 const Subscribe = asyncHandler(async (req,res,next)=>{
     const { threadId, threadName } = req.body
 
-    await DBConnection.execute(
-        'INSERT INTO `subscriptions` (threadId, threadName, uid) VALUES (?,?,?)',
+    await DBConnection.execute(`
+        INSERT INTO subscriptions (threadId, threadName, uid) 
+        VALUES (?,?,?)`,
         [threadId, threadName, req.id]
     )
     next()
@@ -30,8 +32,10 @@ const Subscribe = asyncHandler(async (req,res,next)=>{
 
 const isSubscribed = async (threadId, uid)=>{
     try{
-        const [rows] = await DBConnection.execute(
-            'SELECT * `subscriptions` WHERE threadId = ? AND uid = ?',
+        const [rows] = await DBConnection.execute(`
+            SELECT 1 
+            FROM subscriptions 
+            WHERE threadId = ? AND uid = ?`,
             [threadId, uid]
         )
         return rows.length > 0
@@ -43,29 +47,37 @@ const isSubscribed = async (threadId, uid)=>{
 
 const PrivateDM = asyncHandler(async (req,res,next)=>{
     const threadId = req.threadId
-    const [user1] = await DBConnection.execute(
-        'SELECT username, profilePicture FROM `users` WHERE id = ?',
-        [req.id]
-    )
-    const [user2] = await DBConnection.execute(
-        'SELECT username, profilePicture FROM `users` WHERE id = ?',
-        [req.friend]
-    )
 
-    await DBConnection.execute(
-        'INSERT INTO `subscriptions` (threadId, threadName, threadIcon, uid) VALUES (?,?,?,?)',
-        [threadId, user2[0].username, user2[0].profilePicture, req.id]
+    const [result] = await DBConnection.execute(`
+        INSERT INTO subscriptions (threadId, threadName, threadIcon, uid) 
+        WITH userInfo AS (
+            SELECT username, profilePicture
+            FROM users 
+            WHERE id = ?
+        )
+        SELECT ?,username,profilePicture,?
+        FROM userInfo`,
+        [req.friend, threadId, req.id]
     )
     await DBConnection.execute(
-        'INSERT INTO `subscriptions` (threadId, threadName, threadIcon, uid) VALUES (?,?,?,?)',
-        [threadId, user1[0].username, user1[0].profilePicture, req.friend]
+        `
+        INSERT INTO subscriptions (threadId, threadName, threadIcon, uid) 
+        WITH userInfo AS (
+            SELECT username, profilePicture 
+            FROM users WHERE id = ?
+        )
+        SELECT ?,username,profilePicture,? 
+        FROM userInfo`,
+        [req.id, threadId, req.friend]
     )
     next()
 });
 
 app.get('/api/messages/threads', Authenticate, asyncHandler(async (req,res)=>{
-    const [rows] = await DBConnection.execute(
-        'SELECT threadId, threadName, threadIcon FROM `subscriptions` WHERE uid = ?',
+    const [rows] = await DBConnection.execute(`
+        SELECT threadId, threadName, threadIcon 
+        FROM subscriptions 
+        WHERE uid = ?`,
         [req.id]
     )
     res.status(200).json(rows)
@@ -82,8 +94,10 @@ app.post('/api/messages/subscriptions', Authenticate, Subscribe, ()=>{
 app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
     const { threadId, message } = req.body
     if (!isSubscribed(threadId, req.id)) throw new Error("Internal Server Error")
-    await DBConnection.execute(
-        'INSERT INTO `messages` (threadId, sender, message, createdAt) VALUES (?,?,?,?)',
+    
+    await DBConnection.execute(`
+        INSERT INTO messages (threadId, sender, message, createdAt) 
+        VALUES (?,?,?,?)`,
         [threadId, req.id, message.slice(0,2000), new Date()]
     )
     res.status(200).send("SUCCESS")
@@ -92,14 +106,21 @@ app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
 app.get('/api/messages/:threadId', Authenticate, asyncHandler(async (req,res)=>{
     const threadId = req.params.threadId
     if (!isSubscribed(threadId, req.id)) throw new Error("Internal Server Error")
-    const [rows] = await DBConnection.execute(
-        'SELECT u.username, m.message, m.createdAt FROM `messages` m JOIN `users` u ON m.sender = u.id WHERE m.threadId = ? ORDER BY m.createdAt',
+    
+    const [rows] = await DBConnection.execute(`
+        SELECT u.username, m.message, m.createdAt 
+        FROM messages m 
+        JOIN users u 
+        ON m.sender = u.id 
+        WHERE m.threadId = ? 
+        ORDER BY m.createdAt`,
         [threadId]
     )
     res.status(200).json(rows)
 }));
 
 app.use((err,req,res,next)=>{
+    console.log(err)
     res.status(500).send(err)
 })
 

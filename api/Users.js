@@ -54,8 +54,10 @@ app.get('/api/users/', asyncHandler(async (req,res)=>{
         return res.status(200).send(user)
     }
     
-    const [rows] = await DBConnection.execute(
-        'SELECT username, firstName, lastName, profilePicture, backgroundImage, description FROM `users` WHERE id = ?',
+    const [rows] = await DBConnection.execute(`
+        SELECT username, firstName, lastName, profilePicture, backgroundImage, description 
+        FROM users 
+        WHERE id = ?`,
         [id]
     )
 
@@ -67,8 +69,11 @@ app.get('/api/users/', asyncHandler(async (req,res)=>{
 
 app.get('/api/users/search', asyncHandler(async (req,res)=>{
     const { username } = req.query
-    const [rows] = await DBConnection.execute(
-        "SELECT username, id FROM `users` WHERE username LIKE CONCAT('%',?,'%') LIMIT 10",
+    const [rows] = await DBConnection.execute(`
+        SELECT username, id 
+        FROM users 
+        WHERE username LIKE CONCAT('%',?,'%') 
+        LIMIT 10`,
         [username]
     )
     res.status(200).send(rows)
@@ -80,8 +85,9 @@ app.post('/api/users/register', createAccountLimiter, asyncHandler(async (req,re
     
     const result = userRegistrationSchema.safeParse(req.body);
     if(result.success){
-        await DBConnection.execute(
-            'INSERT INTO `users` (username, password, firstName, lastName) VALUES (?,?,?,?)',
+        await DBConnection.execute(`
+            INSERT INTO users (username, password, firstName, lastName) 
+            VALUES (?,?,?,?)`,
             [username, hash, firstName, lastName]
         )
         res.status(200).send("SUCCESSFULLY CREATED USER")
