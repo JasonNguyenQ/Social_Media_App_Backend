@@ -45,10 +45,12 @@ app.use(cors(corsOptions))
 const friendsRouter = require('./api/Friends')
 const usersRouter = require('./api/Users')
 const { app: messagesRouter } = require('./api/Messages')
+const postsRouter = require('./api/Posts')
 
 app.use(friendsRouter)
 app.use(usersRouter)
 app.use(messagesRouter)
+app.use(postsRouter)
 
 const server = http.createServer(app)
 const io = new Server(server, {
@@ -97,8 +99,10 @@ app.get('/', (req,res)=>{
 app.post('/auth/login', loginAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password } = req.body
     
-    const [result] = await DBConnection.execute(
-        'SELECT id, password FROM `users` WHERE username = ?',
+    const [result] = await DBConnection.execute(`
+        SELECT id, password 
+        FROM users 
+        WHERE username = ?`,
         [username]
     )
     
