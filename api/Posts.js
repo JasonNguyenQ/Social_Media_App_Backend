@@ -16,7 +16,7 @@ const upload = multer({
 
 app.get('/api/posts', upload.single('image'), (async (req, res)=>{
     const [rows] = await DBConnection.execute(`
-        SELECT title, caption, image, profilePicture, username AS 'from', createdAt
+        SELECT id, title, caption, image, profilePicture, username AS 'from', createdAt
         FROM posts JOIN users ON posts.userId = users.id
         LIMIT 25`,
         []
