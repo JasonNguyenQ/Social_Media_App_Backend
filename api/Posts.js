@@ -14,9 +14,9 @@ const upload = multer({
     limits: { fileSize: 1024*1024 }
 });
 
-app.get('/api/posts', upload.single('image'), (async (req, res)=>{
+app.get('/api/posts', upload.single('image'), asyncHandler(async (req, res)=>{
     const [rows] = await DBConnection.execute(`
-        SELECT id, title, caption, image, profilePicture, username AS 'from', createdAt
+        SELECT postId, id, title, caption, image, profilePicture, username AS 'from', createdAt
         FROM posts JOIN users ON posts.userId = users.id
         LIMIT 25`,
         []
@@ -25,7 +25,7 @@ app.get('/api/posts', upload.single('image'), (async (req, res)=>{
     res.status(200).send(rows)
 }));
 
-app.post('/api/posts', Authenticate, upload.single('image'), (async (req, res)=>{
+app.post('/api/posts', Authenticate, upload.single('image'), asyncHandler(async (req, res)=>{
     const { title, caption } = req.body
     const image = req.file
     const allowedTypes = ['image/png', 'image/jpg', 'img/jpeg']
