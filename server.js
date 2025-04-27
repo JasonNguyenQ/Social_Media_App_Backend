@@ -46,11 +46,13 @@ const friendsRouter = require('./api/Friends')
 const usersRouter = require('./api/Users')
 const { app: messagesRouter } = require('./api/Messages')
 const postsRouter = require('./api/Posts')
+const reactionsRouter = require('./api/Reactions')
 
 app.use(friendsRouter)
 app.use(usersRouter)
 app.use(messagesRouter)
 app.use(postsRouter)
+app.use(reactionsRouter)
 
 const server = http.createServer(app)
 const io = new Server(server, {
