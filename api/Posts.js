@@ -1,6 +1,6 @@
 const express = require("express")
 const asyncHandler = require('express-async-handler')
-const Authenticate = require("./Auth")
+const {Authenticate} = require("./Auth")
 const { validateBufferMIMEType } = require("validate-image-type")
 const multer = require("multer")
 const sharp = require("sharp")
@@ -60,6 +60,20 @@ app.get('/api/posts/comments/:id', asyncHandler(async (req, res)=>{
 
     res.status(200).send(rows)
 }));
+
+app.get('/api/posts/comments/count/:id', asyncHandler(async (req, res)=>{
+    const id = req.params.id
+
+    const [rows] = await DBConnection.execute(`
+        SELECT COUNT(*) AS Total
+        FROM comments
+        WHERE postId = ?`,
+        [id]
+    )
+
+    if(rows[0]) return res.status(200).send(rows[0]["Total"].toString())
+    return res.status(200).send('0')
+}))
 
 app.post('/api/posts/comments', Authenticate, asyncHandler(async (req, res)=>{
     const { postId, comment } = req.body

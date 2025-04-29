@@ -1,6 +1,6 @@
 const express = require("express")
 const asyncHandler = require('express-async-handler')
-const Authenticate = require("./Auth")
+const {Authenticate} = require("./Auth")
 const {DBConnection} = require("../database/database")
 const crypto = require('crypto')
 
