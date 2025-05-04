@@ -37,8 +37,20 @@ app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
 app.post('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
     const { type, id, reaction } = req.body
     
-    const tables = ["post"]
+    const tables = ["post","message"]
     if(!tables.includes(type)) throw new Error("Invalid content type")
+
+    if(type === "message"){
+        const [rows] = await DBConnection.execute(`
+            SELECT 1
+            FROM messages m
+            JOIN threads t ON m.threadId = t.threadId
+            JOIN subscriptions s ON t.threadId = s.threadId
+            WHERE uid = ?`,
+            [req.id]
+        )
+        if(rows.length === 0) throw new Error("Reaction Failed")
+    }
 
     const [rows] = await DBConnection.execute(`
         SELECT 1

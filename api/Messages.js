@@ -108,7 +108,7 @@ app.get('/api/messages/:threadId', Authenticate, asyncHandler(async (req,res)=>{
     if (!isSubscribed(threadId, req.id)) throw new Error("Internal Server Error")
     
     const [rows] = await DBConnection.execute(`
-        SELECT u.username, m.message, m.createdAt 
+        SELECT u.username, m.message, m.createdAt, m.messageId
         FROM messages m 
         JOIN users u 
         ON m.sender = u.id 
