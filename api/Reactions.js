@@ -22,7 +22,6 @@ app.get('/api/reactions', isAuthenticated, asyncHandler(async (req, res)=>{
 app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
     const { reaction } = req.query
     const { type, id } = req.params
-
     const [rows] = await DBConnection.execute(`
         SELECT COUNT(*) AS Total
         FROM reactions
@@ -33,6 +32,7 @@ app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
     if(rows[0]) return res.status(200).send(rows[0]["Total"].toString())
     return res.status(200).send('0')
 }))
+
 
 app.post('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
     const { type, id, reaction } = req.body
@@ -46,8 +46,8 @@ app.post('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
             FROM messages m
             JOIN threads t ON m.threadId = t.threadId
             JOIN subscriptions s ON t.threadId = s.threadId
-            WHERE uid = ?`,
-            [req.id]
+            WHERE uid = ? AND m.messageId = ?`,
+            [req.id, id]
         )
         if(rows.length === 0) throw new Error("Reaction Failed")
     }
