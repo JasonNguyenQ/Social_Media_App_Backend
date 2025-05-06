@@ -48,7 +48,7 @@ const isSubscribed = async (threadId, uid)=>{
 const PrivateDM = asyncHandler(async (req,res,next)=>{
     const threadId = req.threadId
 
-    const [result] = await DBConnection.execute(`
+    await DBConnection.execute(`
         INSERT INTO subscriptions (threadId, threadName, threadIcon, uid) 
         WITH userInfo AS (
             SELECT username, profilePicture
@@ -93,7 +93,7 @@ app.post('/api/messages/subscriptions', Authenticate, Subscribe, ()=>{
 
 app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
     const { threadId, message } = req.body
-    if (!isSubscribed(threadId, req.id)) throw new Error("Internal Server Error")
+    if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
     
     await DBConnection.execute(`
         INSERT INTO messages (threadId, sender, message, createdAt) 
@@ -105,7 +105,7 @@ app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
 
 app.get('/api/messages/:threadId', Authenticate, asyncHandler(async (req,res)=>{
     const threadId = req.params.threadId
-    if (!isSubscribed(threadId, req.id)) throw new Error("Internal Server Error")
+    if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
     
     const [rows] = await DBConnection.execute(`
         SELECT u.username, m.message, m.createdAt, m.messageId
@@ -123,4 +123,4 @@ app.use((err,req,res,next)=>{
     res.status(500).send(err)
 })
 
-module.exports = { app, CreateThread, Subscribe, PrivateDM }
+module.exports = { app, CreateThread, Subscribe, PrivateDM, isSubscribed }
