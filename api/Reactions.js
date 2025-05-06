@@ -2,6 +2,7 @@ const express = require("express")
 const asyncHandler = require('express-async-handler')
 const {Authenticate, isAuthenticated} = require("./Auth")
 const {DBConnection} = require("../database/database")
+const { isSubscribed } = require('./Messages')
 
 const app = express.Router()
 
@@ -17,6 +18,35 @@ app.get('/api/reactions', isAuthenticated, asyncHandler(async (req, res)=>{
     )
     
     return res.status(200).send(rows.map((row)=>row['reaction']))
+}))
+
+app.get('/api/reactions/threads/:id', Authenticate, asyncHandler(async (req, res)=>{
+    const { id } = req.params
+
+    if(!(await isSubscribed(id,req.id))) throw new Error("Invalid Thread Permissions")
+
+    const [rows] = await DBConnection.execute(`
+        SELECT messageId, reaction, COUNT(*) AS Total
+        FROM reactions JOIN messages ON contentId = messageId
+        WHERE contentType = 'message' AND threadId = ?
+        GROUP BY messageId, reaction`,
+        [id]
+    )
+
+    const messageReactions = {}
+    for(let i = 0; i < rows.length; i++){
+        const row = rows[i]
+        if(row.messageId in messageReactions){
+            messageReactions[row.messageId][row.reaction] = row.Total
+        }
+        else{
+            messageReactions[row.messageId] = {
+                [row.reaction]: row.Total
+            }
+
+        }
+    }
+    return res.status(200).send(messageReactions)
 }))
 
 app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
