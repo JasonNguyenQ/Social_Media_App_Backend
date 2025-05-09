@@ -20,6 +20,31 @@ app.get('/api/reactions', isAuthenticated, asyncHandler(async (req, res)=>{
     return res.status(200).send(rows.map((row)=>row['reaction']))
 }))
 
+app.get('/api/reactions/self/threads/:id', isAuthenticated, asyncHandler(async (req, res)=>{
+    if(!req.authenticated) return res.status(200).send({})
+
+    const { id } = req.params
+    const [rows] = await DBConnection.execute(`
+        SELECT messageId, reaction
+        FROM reactions JOIN messages ON contentId = messageId
+        WHERE contentType = 'message' AND threadId = ? and userId = ?`,
+        [id, req.id]
+    )
+
+    const messageReactions = {}
+    for(let i = 0; i < rows.length; i++){
+        const row = rows[i]
+        if(row.messageId in messageReactions){
+            messageReactions[row.messageId].push(row.reaction)
+        }
+        else{
+            messageReactions[row.messageId] = [row.reaction]
+        }
+    }
+
+    return res.status(200).send(messageReactions)
+}))
+
 app.get('/api/reactions/threads/:id', Authenticate, asyncHandler(async (req, res)=>{
     const { id } = req.params
 
