@@ -6,7 +6,7 @@ const {DBConnection} = require("../database/database")
 
 const app = express.Router()
 
-app.get('/api/friends', Authenticate, asyncHandler(async (req,res)=>{
+app.get('/', Authenticate, asyncHandler(async (req,res)=>{
     const [friends] = await DBConnection.execute(`
         SELECT * 
         FROM friends 
@@ -17,7 +17,7 @@ app.get('/api/friends', Authenticate, asyncHandler(async (req,res)=>{
     res.status(200).json(friends)
 }))
 
-app.get('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
+app.get('/:id', Authenticate, asyncHandler(async (req,res)=>{
     const { id } = req.params
     if (req.id === parseInt(id)) return res.status(200).json({state: "You"})
 
@@ -40,7 +40,7 @@ app.get('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
     res.status(200).json({state: "Strangers"})
 }))
 
-app.post('/api/friends', Authenticate, asyncHandler(async (req, res)=>{
+app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     const { id } = req.body
     if (req.id == id) return res.status(500).send("ERROR SENDING FRIEND REQUEST")
 
@@ -53,7 +53,7 @@ app.post('/api/friends', Authenticate, asyncHandler(async (req, res)=>{
     res.status(200).send("FRIEND REQUEST SENT")
 }))
 
-app.put('/api/friends/:id', Authenticate, asyncHandler(async (req,res,next)=>{
+app.put('/:id', Authenticate, asyncHandler(async (req,res,next)=>{
     const { id } = req.params
 
     await DBConnection.execute(`
@@ -67,7 +67,7 @@ app.put('/api/friends/:id', Authenticate, asyncHandler(async (req,res,next)=>{
     next()
 }), CreateThread, PrivateDM, (req,res)=>{res.status(200).send("ACCEPTED FRIEND REQUEST")})
 
-app.delete('/api/friends/:id', Authenticate, asyncHandler(async (req,res)=>{
+app.delete('/:id', Authenticate, asyncHandler(async (req,res)=>{
     const { id } = req.params
 
     await DBConnection.execute(`

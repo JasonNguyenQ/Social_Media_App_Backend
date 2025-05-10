@@ -73,7 +73,7 @@ const PrivateDM = asyncHandler(async (req,res,next)=>{
     next()
 });
 
-app.get('/api/messages/threads', Authenticate, asyncHandler(async (req,res)=>{
+app.get('/threads', Authenticate, asyncHandler(async (req,res)=>{
     const [rows] = await DBConnection.execute(`
         SELECT threadId, threadName, threadIcon 
         FROM subscriptions 
@@ -83,15 +83,15 @@ app.get('/api/messages/threads', Authenticate, asyncHandler(async (req,res)=>{
     res.status(200).json(rows)
 }));
 
-app.post('/api/messages/threads', Authenticate, CreateThread, (req,res)=>{
+app.post('/threads', Authenticate, CreateThread, (req,res)=>{
     res.status(200).send(req.threadId)
 })
 
-app.post('/api/messages/subscriptions', Authenticate, Subscribe, ()=>{
+app.post('/subscriptions', Authenticate, Subscribe, ()=>{
     res.status(200).send("SUCCESSFULLY SUBSCRIBED")
 })
 
-app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
+app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     const { threadId, message } = req.body
     if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
     
@@ -103,7 +103,7 @@ app.post('/api/messages', Authenticate, asyncHandler(async (req, res)=>{
     res.status(200).send("SUCCESS")
 }));
 
-app.get('/api/messages/:threadId', Authenticate, asyncHandler(async (req,res)=>{
+app.get('/:threadId', Authenticate, asyncHandler(async (req,res)=>{
     const threadId = req.params.threadId
     if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
     

@@ -46,7 +46,7 @@ const userRegistrationSchema = z.object({
     
 })
 
-app.get('/api/users/', asyncHandler(async (req,res)=>{
+app.get('/', asyncHandler(async (req,res)=>{
     const { id } = req.query
 
     const user = await redisConnection.GET(`users?id=${id}`)
@@ -67,7 +67,7 @@ app.get('/api/users/', asyncHandler(async (req,res)=>{
     
 }));
 
-app.get('/api/users/search', asyncHandler(async (req,res)=>{
+app.get('/search', asyncHandler(async (req,res)=>{
     const { username } = req.query
     const [rows] = await DBConnection.execute(`
         SELECT username, id 
@@ -79,7 +79,7 @@ app.get('/api/users/search', asyncHandler(async (req,res)=>{
     res.status(200).send(rows)
 }))
 
-app.post('/api/users/register', createAccountLimiter, asyncHandler(async (req,res)=>{
+app.post('/register', createAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password, firstName, lastName } = req.body
     const hash = await bcrypt.hash(password,13)
     
@@ -97,7 +97,7 @@ app.post('/api/users/register', createAccountLimiter, asyncHandler(async (req,re
     }
 }));
 
-app.patch('/api/users', Authenticate, 
+app.patch('/', Authenticate, 
     upload.fields([
     { name: 'profilePicture', maxCount: 1 }, 
     { name: 'backgroundImage', maxCount: 1 }]),

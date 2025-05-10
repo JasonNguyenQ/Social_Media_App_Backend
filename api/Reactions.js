@@ -6,7 +6,7 @@ const { isSubscribed } = require('./Messages')
 
 const app = express.Router()
 
-app.get('/api/reactions', isAuthenticated, asyncHandler(async (req, res)=>{
+app.get('/', isAuthenticated, asyncHandler(async (req, res)=>{
     if(!req.authenticated) return res.status(200).send([])
 
     const { type, id } = req.query
@@ -20,7 +20,7 @@ app.get('/api/reactions', isAuthenticated, asyncHandler(async (req, res)=>{
     return res.status(200).send(rows.map((row)=>row['reaction']))
 }))
 
-app.get('/api/reactions/self/threads/:id', isAuthenticated, asyncHandler(async (req, res)=>{
+app.get('/self/threads/:id', isAuthenticated, asyncHandler(async (req, res)=>{
     if(!req.authenticated) return res.status(200).send({})
 
     const { id } = req.params
@@ -45,7 +45,7 @@ app.get('/api/reactions/self/threads/:id', isAuthenticated, asyncHandler(async (
     return res.status(200).send(messageReactions)
 }))
 
-app.get('/api/reactions/threads/:id', Authenticate, asyncHandler(async (req, res)=>{
+app.get('/threads/:id', Authenticate, asyncHandler(async (req, res)=>{
     const { id } = req.params
 
     if(!(await isSubscribed(id,req.id))) throw new Error("Invalid Thread Permissions")
@@ -74,7 +74,7 @@ app.get('/api/reactions/threads/:id', Authenticate, asyncHandler(async (req, res
     return res.status(200).send(messageReactions)
 }))
 
-app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
+app.get('/:type/:id', asyncHandler(async (req, res)=>{
     const { reaction } = req.query
     const { type, id } = req.params
     const [rows] = await DBConnection.execute(`
@@ -89,7 +89,7 @@ app.get('/api/reactions/:type/:id', asyncHandler(async (req, res)=>{
 }))
 
 
-app.post('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
+app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     const { type, id, reaction } = req.body
     
     const tables = ["post","message"]
@@ -125,7 +125,7 @@ app.post('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
     res.status(200).send(`Successfully reacted to ${type}`)
 }))
 
-app.delete('/api/reactions', Authenticate, asyncHandler(async (req, res)=>{
+app.delete('/', Authenticate, asyncHandler(async (req, res)=>{
     const { type, id, reaction } = req.body
 
     await DBConnection.execute(`

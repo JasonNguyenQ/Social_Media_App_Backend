@@ -14,7 +14,7 @@ const upload = multer({
     limits: { fileSize: 1024*1024 }
 });
 
-app.get('/api/posts', upload.single('image'), asyncHandler(async (req, res)=>{
+app.get('/', upload.single('image'), asyncHandler(async (req, res)=>{
     const [rows] = await DBConnection.execute(`
         SELECT postId, id, title, caption, image, profilePicture, username AS 'from', createdAt
         FROM posts JOIN users ON posts.userId = users.id
@@ -25,7 +25,7 @@ app.get('/api/posts', upload.single('image'), asyncHandler(async (req, res)=>{
     res.status(200).send(rows)
 }));
 
-app.post('/api/posts', Authenticate, upload.single('image'), asyncHandler(async (req, res)=>{
+app.post('/', Authenticate, upload.single('image'), asyncHandler(async (req, res)=>{
     const { title, caption } = req.body
     const image = req.file
     const allowedTypes = ['image/png', 'image/jpg', 'img/jpeg']
@@ -48,7 +48,7 @@ app.post('/api/posts', Authenticate, upload.single('image'), asyncHandler(async 
     res.status(200).send("POST CREATED")
 }));
 
-app.get('/api/posts/comments/:id', asyncHandler(async (req, res)=>{
+app.get('/comments/:id', asyncHandler(async (req, res)=>{
     const postId = req.params.id
 
     const [rows] = await DBConnection.execute(`
@@ -61,7 +61,7 @@ app.get('/api/posts/comments/:id', asyncHandler(async (req, res)=>{
     res.status(200).send(rows)
 }));
 
-app.get('/api/posts/comments/count/:id', asyncHandler(async (req, res)=>{
+app.get('/comments/count/:id', asyncHandler(async (req, res)=>{
     const id = req.params.id
 
     const [rows] = await DBConnection.execute(`
@@ -75,7 +75,7 @@ app.get('/api/posts/comments/count/:id', asyncHandler(async (req, res)=>{
     return res.status(200).send('0')
 }))
 
-app.post('/api/posts/comments', Authenticate, asyncHandler(async (req, res)=>{
+app.post('/comments', Authenticate, asyncHandler(async (req, res)=>{
     const { postId, comment } = req.body
 
     await DBConnection.execute(`
