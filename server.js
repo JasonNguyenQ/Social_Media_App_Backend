@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser')
 const cors = require('cors');
 const bcrypt = require('bcryptjs')
 const {DBConnection} = require('./database/database')
+const {isSubscribed} = require('./api/Messages')
 
 const app = express()
 
@@ -47,6 +48,7 @@ const usersRouter = require('./api/Users')
 const { app: messagesRouter } = require('./api/Messages')
 const postsRouter = require('./api/Posts')
 const reactionsRouter = require('./api/Reactions')
+const { threadId } = require('worker_threads')
 
 app.use('/api/friends', friendsRouter)
 app.use('/api/users', usersRouter)
@@ -63,35 +65,38 @@ const io = new Server(server, {
 })
 
 io.on("connection", (socket)=>{
+    const { token } = socket.handshake.query
+    try{
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user)=>{
+            if(err) socket.disconnect()
+            socket.username = user.preferred_username
+            socket.uid = user.sub
+        })
+    }
+    catch(err){
+        socket.disconnect()
+    }
+
     socket.on("send", (event)=>{
-        const { token, message } = event
-        try {
-            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user)=>{
-                if(err) return
-                socket.username = user.preferred_username
-            })
-        }
-        catch { return }
+        const { message } = event
 
         if(typeof message === "string"){
             const packet = {
                 from: socket.username, 
                 message: message.slice(0,2000),
-                timeStamp: Date.now()
+                timeStamp: Date.now(),
+                threadId: socket.thread,
             }
-
             socket.to(socket.thread).emit("receive", packet)
         }
     })
 
-    socket.on("join", (thread)=>{
+    socket.on("join", async (thread)=>{
+        if(!(await isSubscribed(threadId, socket.uid)) || thread === undefined) return
         socket.thread = thread
         socket.join(thread)
     })
-
-    socket.on("leave", (thread)=>{
-        socket.leave(thread)
-    })
+    
 })
 
 app.get('/', (req,res)=>{
