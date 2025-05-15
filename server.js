@@ -97,6 +97,9 @@ io.on("connection", (socket)=>{
         socket.join(thread)
     })
     
+    socket.on("reactionInbound", (event)=>{
+        socket.to(socket.thread).emit("reactionOutbound", event)
+    })
 })
 
 app.get('/', (req,res)=>{
