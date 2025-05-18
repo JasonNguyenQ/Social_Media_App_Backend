@@ -73,24 +73,6 @@ const PrivateDM = asyncHandler(async (req,res,next)=>{
     next()
 });
 
-app.get('/threads', Authenticate, asyncHandler(async (req,res)=>{
-    const [rows] = await DBConnection.execute(`
-        SELECT threadId, threadName, threadIcon 
-        FROM subscriptions 
-        WHERE uid = ?`,
-        [req.id]
-    )
-    res.status(200).json(rows)
-}));
-
-app.post('/threads', Authenticate, CreateThread, (req,res)=>{
-    res.status(200).send(req.threadId)
-})
-
-app.post('/subscriptions', Authenticate, Subscribe, ()=>{
-    res.status(200).send("SUCCESSFULLY SUBSCRIBED")
-})
-
 app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     const { threadId, message } = req.body
     if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
@@ -102,6 +84,24 @@ app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     )
     res.status(200).send("SUCCESS")
 }));
+
+app.route('/threads')
+    .get(Authenticate, asyncHandler(async (req,res)=>{
+        const [rows] = await DBConnection.execute(`
+            SELECT threadId, threadName, threadIcon 
+            FROM subscriptions 
+            WHERE uid = ?`,
+            [req.id]
+        )
+        res.status(200).json(rows)
+    }))
+    .post(Authenticate, CreateThread, (req,res)=>{
+        res.status(200).send(req.threadId)
+    })
+
+app.post('/subscriptions', Authenticate, Subscribe, ()=>{
+    res.status(200).send("SUCCESSFULLY SUBSCRIBED")
+})
 
 app.get('/:threadId', Authenticate, asyncHandler(async (req,res)=>{
     const threadId = req.params.threadId

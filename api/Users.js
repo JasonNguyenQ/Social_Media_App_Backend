@@ -46,26 +46,68 @@ const userRegistrationSchema = z.object({
     
 })
 
-app.get('/', asyncHandler(async (req,res)=>{
-    const { id } = req.query
+app.route('/')
+    .get(asyncHandler(async (req,res)=>{
+        const { id } = req.query
 
-    const user = await redisConnection.GET(`users?id=${id}`)
-    if (user != null){
-        return res.status(200).send(user)
-    }
-    
-    const [rows] = await DBConnection.execute(`
-        SELECT username, firstName, lastName, profilePicture, backgroundImage, description 
-        FROM users 
-        WHERE id = ?`,
-        [id]
-    )
+        const user = await redisConnection.GET(`users?id=${id}`)
+        if (user != null){
+            return res.status(200).send(user)
+        }
+        
+        const [rows] = await DBConnection.execute(`
+            SELECT username, firstName, lastName, profilePicture, backgroundImage, description 
+            FROM users 
+            WHERE id = ?`,
+            [id]
+        )
 
-    await redisConnection.setEx(`users?id=${id}`, process.env.CACHE_INVALIDATE, JSON.stringify(rows[0]))
-    res.status(200).send(rows[0])
+        await redisConnection.setEx(`users?id=${id}`, process.env.CACHE_INVALIDATE, JSON.stringify(rows[0]))
+        res.status(200).send(rows[0])
 
-    
-}));
+        
+    }))
+    .patch(Authenticate, 
+        upload.fields([
+        { name: 'profilePicture', maxCount: 1 }, 
+        { name: 'backgroundImage', maxCount: 1 }]),
+    asyncHandler(async (req,res)=>{
+        const id = req.id;
+        const {profilePicture, backgroundImage} = req.files
+        const allowedTypes = ['image/png', 'image/jpg', 'img/jpeg']
+
+        let query = 'UPDATE `users` SET ';
+        const params = []
+        if(req.body.description){
+            query += "description = ?, "
+            params.push(req.body.description)
+        }
+        if(profilePicture && await validateBufferMIMEType(profilePicture[0].buffer, {allowMimeTypes: allowedTypes})){
+            query += "profilePicture = ?, "
+
+            const compressedImage = await sharp(profilePicture[0].buffer)
+                .resize(150,150)
+                .webp({quality: 80})
+                .toBuffer()
+            params.push(compressedImage.toString('base64'))
+        }
+        if(backgroundImage && await validateBufferMIMEType(backgroundImage[0].buffer, {allowMimeTypes: allowedTypes})){
+            query += "backgroundImage = ?, "
+
+            const compressedImage = await sharp(backgroundImage[0].buffer)
+                .resize(900,150)
+                .webp({quality: 80})
+                .toBuffer()
+            params.push(compressedImage.toString('base64'))
+        }
+        query = query.slice(0,-2) + " WHERE id = ?"
+        params.push(id)
+
+        await DBConnection.execute(query, params)
+
+        await redisConnection.DEL(`users?id=${id}`)
+        res.status(200).send("SUCCESSFULLY UPDATED USER")
+    }));
 
 app.get('/search', asyncHandler(async (req,res)=>{
     const { username } = req.query
@@ -95,49 +137,7 @@ app.post('/register', createAccountLimiter, asyncHandler(async (req,res)=>{
     else{
         res.status(400).send("INVALID INPUT FIELDS")
     }
-}));
-
-app.patch('/', Authenticate, 
-    upload.fields([
-    { name: 'profilePicture', maxCount: 1 }, 
-    { name: 'backgroundImage', maxCount: 1 }]),
-    asyncHandler(async (req,res)=>{
-    const id = req.id;
-    const {profilePicture, backgroundImage} = req.files
-    const allowedTypes = ['image/png', 'image/jpg', 'img/jpeg']
-
-    let query = 'UPDATE `users` SET ';
-    const params = []
-    if(req.body.description){
-        query += "description = ?, "
-        params.push(req.body.description)
-    }
-    if(profilePicture && await validateBufferMIMEType(profilePicture[0].buffer, {allowMimeTypes: allowedTypes})){
-        query += "profilePicture = ?, "
-
-        const compressedImage = await sharp(profilePicture[0].buffer)
-            .resize(150,150)
-            .webp({quality: 80})
-            .toBuffer()
-        params.push(compressedImage.toString('base64'))
-    }
-    if(backgroundImage && await validateBufferMIMEType(backgroundImage[0].buffer, {allowMimeTypes: allowedTypes})){
-        query += "backgroundImage = ?, "
-
-        const compressedImage = await sharp(backgroundImage[0].buffer)
-            .resize(900,150)
-            .webp({quality: 80})
-            .toBuffer()
-        params.push(compressedImage.toString('base64'))
-    }
-    query = query.slice(0,-2) + " WHERE id = ?"
-    params.push(id)
-
-    await DBConnection.execute(query, params)
-
-    await redisConnection.DEL(`users?id=${id}`)
-    res.status(200).send("SUCCESSFULLY UPDATED USER")
-}));
+}))
 
 app.use((err,req,res,next)=>{
     res.status(500).send(err)
