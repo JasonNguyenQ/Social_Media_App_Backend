@@ -85,6 +85,18 @@ app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     res.status(200).send("SUCCESS")
 }));
 
+app.delete('/:messageId', Authenticate, asyncHandler(async (req, res)=>{
+    const messageId = req.params.messageId
+
+    await DBConnection.execute(`
+        DELETE FROM messages
+        WHERE messageId = ? AND sender = ?
+        `,
+        [messageId, req.id]
+    )
+    res.status(200).send("SUCCESS")
+}));
+
 app.route('/threads')
     .get(Authenticate, asyncHandler(async (req,res)=>{
         const [rows] = await DBConnection.execute(`
