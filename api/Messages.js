@@ -77,12 +77,12 @@ app.post('/', Authenticate, asyncHandler(async (req, res)=>{
     const { threadId, message } = req.body
     if (!(await isSubscribed(threadId, req.id))) throw new Error("Internal Server Error")
     
-    await DBConnection.execute(`
+    const [row] = await DBConnection.execute(`
         INSERT INTO messages (threadId, sender, message, createdAt) 
         VALUES (?,?,?,?)`,
         [threadId, req.id, message.slice(0,2000), new Date()]
     )
-    res.status(200).send("SUCCESS")
+    res.status(200).send(row.insertId.toString())
 }));
 
 app.delete('/:messageId', Authenticate, asyncHandler(async (req, res)=>{

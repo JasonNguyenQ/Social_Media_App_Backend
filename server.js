@@ -34,7 +34,7 @@ const loginAccountLimiter = rateLimit({
 })
 
 const corsOptions = {
-    origin: [`http://localhost:3000`,`http://localhost:5173`,`http://localhost:4173`],
+    origin: [`http://localhost:5173`,`http://localhost:4173`],
     methods: ['GET','POST','PUT','DELETE','PATCH'],
     allowedHeaders: ['Content-Type','Authorization'],
     credentials: true,
@@ -78,7 +78,7 @@ io.on("connection", (socket)=>{
     }
 
     socket.on("send", (event)=>{
-        const { message } = event
+        const { message, messageId } = event
 
         if(typeof message === "string"){
             const packet = {
@@ -86,7 +86,9 @@ io.on("connection", (socket)=>{
                 message: message.slice(0,2000),
                 timeStamp: Date.now(),
                 threadId: socket.thread,
+                messageId: messageId
             }
+            
             socket.to(socket.thread).emit("receive", packet)
         }
     })
@@ -99,6 +101,10 @@ io.on("connection", (socket)=>{
     
     socket.on("reactionInbound", (event)=>{
         socket.to(socket.thread).emit("reactionOutbound", event)
+    })
+
+    socket.on("actionInbound", (event)=>{
+        socket.to(socket.thread).emit("actionOutbound", {...event, from: socket.username})
     })
 })
 
