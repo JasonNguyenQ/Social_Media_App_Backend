@@ -42,8 +42,6 @@ const userRegistrationSchema = z.object({
     lastName: z
         .string()
         .regex(/^[A-Z][a-z]*$/, { message: "Last name MUST start with an uppercase and trail with lowercase English letters" }),
-
-    
 })
 
 app.route('/')
@@ -51,9 +49,7 @@ app.route('/')
         const { id } = req.query
 
         const user = await redisConnection.GET(`users?id=${id}`)
-        if (user != null){
-            return res.status(200).send(user)
-        }
+        if (user) return res.status(200).send(user)
         
         const [rows] = await DBConnection.execute(`
             SELECT username, firstName, lastName, profilePicture, backgroundImage, description 

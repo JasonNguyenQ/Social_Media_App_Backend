@@ -4,7 +4,7 @@ const {Authenticate} = require("./Auth")
 const { validateBufferMIMEType } = require("validate-image-type")
 const multer = require("multer")
 const sharp = require("sharp")
-const {DBConnection} = require("../database/database")
+const {DBConnection, redisConnection} = require("../database/database")
 
 const app = express.Router()
 
@@ -15,7 +15,10 @@ const upload = multer({
 });
 
 app.route('/')
-    .get(upload.single('image'), asyncHandler(async (req, res)=>{
+    .get(asyncHandler(async (req, res)=>{
+        const posts = await redisConnection.GET(`posts`)
+        if(posts) return res.status(200).send(posts)
+        
         const [rows] = await DBConnection.execute(`
             SELECT postId, id, title, caption, image, profilePicture, username AS 'from', createdAt
             FROM posts JOIN users ON posts.userId = users.id
@@ -23,6 +26,7 @@ app.route('/')
             []
         )
 
+        await redisConnection.setEx(`posts`, process.env.CACHE_INVALIDATE, JSON.stringify(rows))
         res.status(200).send(rows)
     }))
     .post(Authenticate, upload.single('image'), asyncHandler(async (req, res)=>{
