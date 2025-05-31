@@ -58,11 +58,11 @@ app.delete('/:id', Authenticate, asyncHandler(async (req,res)=>{
     const postId = req.params.id
 
     await DBConnection.execute(
-        'DELETE FROM `posts` WHERE postId = ?',
-        [postId]
+        'DELETE FROM `posts` WHERE postId = ? AND userId = ?',
+        [postId, req.id]
     )
 
-    res.sendStatus(200).send("POST DELETED")
+    res.status(200).send("POST DELETED")
 }))
 
 app.post('/comments', Authenticate, asyncHandler(async (req, res)=>{
