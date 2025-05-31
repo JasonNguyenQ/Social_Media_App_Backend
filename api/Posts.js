@@ -26,7 +26,9 @@ app.route('/')
             []
         )
 
-        await redisConnection.setEx(`posts`, process.env.CACHE_INVALIDATE, JSON.stringify(rows))
+        if(rows.length >= 25){
+            await redisConnection.setEx(`posts`, process.env.CACHE_INVALIDATE, JSON.stringify(rows))
+        }
         res.status(200).send(rows)
     }))
     .post(Authenticate, upload.single('image'), asyncHandler(async (req, res)=>{
@@ -51,6 +53,17 @@ app.route('/')
         )
         res.status(200).send("POST CREATED")
     }));
+
+app.delete('/:id', Authenticate, asyncHandler(async (req,res)=>{
+    const postId = req.params.id
+
+    await DBConnection.execute(
+        'DELETE FROM `posts` WHERE postId = ?',
+        [postId]
+    )
+
+    res.sendStatus(200).send("POST DELETED")
+}))
 
 app.post('/comments', Authenticate, asyncHandler(async (req, res)=>{
     const { postId, comment } = req.body
