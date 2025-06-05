@@ -115,6 +115,7 @@ app.get('/', (req,res)=>{
 app.post('/auth/login', loginAccountLimiter, asyncHandler(async (req,res)=>{
     const { username, password } = req.body
     
+    const startTime = Date.now()
     const [result] = await DBConnection.execute(`
         SELECT id, password 
         FROM users 
@@ -122,9 +123,10 @@ app.post('/auth/login', loginAccountLimiter, asyncHandler(async (req,res)=>{
         [username]
     )
     
-    const hashedPassword = result[0].password
+    const hashedPassword = result[0]?.password || ""
     const success = await bcrypt.compare(password,hashedPassword)
-
+    await new Promise((resolve)=>setTimeout(resolve,1000-(Date.now()-startTime)))
+    
     if(success){
         const user = { sub: result[0].id, preferred_username: username }
         const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
