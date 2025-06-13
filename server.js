@@ -34,7 +34,7 @@ const loginAccountLimiter = rateLimit({
 })
 
 const corsOptions = {
-    origin: [`http://localhost:5173`,`http://localhost:4173`],
+    origin: process.env.CLIENT_PORTS.split(" ").map(PORT=>`http://${process.env.CLIENT_HOST || "localhost"}:${PORT}`),
     methods: ['GET','POST','PUT','DELETE','PATCH'],
     allowedHeaders: ['Content-Type','Authorization'],
     credentials: true,
@@ -59,7 +59,7 @@ app.use('/api/reactions', reactionsRouter)
 const server = http.createServer(app)
 const io = new Server(server, {
     cors: {
-        origins: ["http://localhost:5173","http://localhost:4173"],
+        origins: process.env.CLIENT_PORTS.split(" ").map(PORT=>`http://${process.env.CLIENT_HOST || "localhost"}:${PORT}`),
         methods: ["GET", "POST"]
     }
 })
@@ -161,6 +161,6 @@ app.use((err,req,res,next)=>{
     res.status(500).send(err)
 })
 
-server.listen(process.env.SERVER_PORT, ()=>{
+server.listen(process.env.SERVER_PORT || 3000, process.env.SERVER_HOST || "localhost", ()=>{
     console.log(`SERVER STARTED ON PORT ${process.env.SERVER_PORT}`)
 })
